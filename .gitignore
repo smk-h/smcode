@@ -8,3 +8,5 @@ dist
 smink
 claude-code
 .env
+
+.smcode/config.yaml

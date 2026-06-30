@@ -4,6 +4,7 @@
     "types": ["node"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "jsx": "react-jsx",
     "outDir": "out",
     "rootDir": "src",
     "sourceMap": true,

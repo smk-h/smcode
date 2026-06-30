@@ -1,0 +1,14 @@
+# smcode 默认配置文件
+# 启动时会读取 .smcode/config.yaml，也可通过 --config 指定其他路径
+
+# 后端协议，当前仅支持 openai
+protocol: openai
+
+# 模型名称
+model: deepseek-v4-flash
+
+# API 基础地址
+base_url: https://api.deepseek.com
+
+# API 认证密钥
+api_key: sk-xxxxxxxxxxxxxxxxxxxxxxxxx
