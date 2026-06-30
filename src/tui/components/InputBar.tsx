@@ -9,7 +9,7 @@
  * ======================================================
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Box, Text } from '@smai-kit/smink';
 
 import type { TokenUsage } from '../../provider/types.js';
@@ -32,7 +32,7 @@ export interface InputBarProps {
  * @param props - 组件属性
  * @returns React 元素
  */
-export function InputBar({
+function InputBarComponent({
   value,
   disabled,
   placeholder,
@@ -44,7 +44,7 @@ export function InputBar({
   const inputPlaceholder = placeholder ?? defaultPlaceholder;
 
   return (
-    <Box flexDirection="column" marginTop={1}>
+    <Box flexDirection="column" marginTop={1} flexShrink={0}>
       <Box
         borderStyle="round"
         borderColor={disabled ? theme.dim : theme.primary}
@@ -81,3 +81,6 @@ export function InputBar({
     </Box>
   );
 }
+
+/** 底部输入框与状态栏（记忆化，减少流式输出时的重复渲染） */
+export const InputBar = memo(InputBarComponent);

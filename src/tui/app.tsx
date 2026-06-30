@@ -9,11 +9,16 @@
  * ======================================================
  */
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Box, ScrollBox, Text, useApp, useInput } from '@smai-kit/smink';
 
-import { ConversationSession } from '../conversation/session.js';
-import type { ChatStreamChunk, Provider, TokenUsage } from '../provider/types.js';
+import type {
+  ChatMessage,
+  ChatStreamChunk,
+  Provider,
+  TokenUsage,
+} from '../provider/types.js';
+import type { ConversationMessage } from '../conversation/types.js';
 
 import { InputBar } from './components/InputBar.js';
 import { MessageBubble } from './components/MessageBubble.js';
@@ -31,6 +36,56 @@ const INITIAL_TOKEN_USAGE: TokenUsage = {
   totalTokens: 0,
 };
 
+/** 默认系统提示 */
+const DEFAULT_SYSTEM_PROMPT = 'You are a helpful coding assistant.';
+
+/**
+ * 将展示级消息转换为模型可用的聊天消息
+ * @param messages - 展示级消息列表
+ * @returns 模型消息列表
+ */
+function toModelMessages(messages: readonly ConversationMessage[]): ChatMessage[] {
+  return messages
+    .filter((message) => message.role !== 'system')
+    .map((message) => ({
+      role: message.role,
+      content: message.content,
+    }));
+}
+
+/**
+ * 向指定助手消息追加流块
+ * @param messages - 消息列表
+ * @param assistantId - 助手消息索引
+ * @param chunk - Provider 返回的流块
+ * @returns 更新后的消息列表
+ */
+function appendToAssistant(
+  messages: readonly ConversationMessage[],
+  assistantId: number,
+  chunk: ChatStreamChunk,
+): ConversationMessage[] {
+  if (chunk.type === 'usage') {
+    return [...messages];
+  }
+
+  return messages.map((message, index) => {
+    if (index !== assistantId || message.role !== 'assistant') {
+      return message;
+    }
+
+    if (chunk.type === 'content' && chunk.delta) {
+      return { ...message, content: message.content + chunk.delta };
+    }
+
+    if (chunk.type === 'thinking' && chunk.delta) {
+      return { ...message, thinking: (message.thinking ?? '') + chunk.delta };
+    }
+
+    return message;
+  });
+}
+
 /**
  * TUI 主应用
  * @param props - 组件属性
@@ -38,9 +93,10 @@ const INITIAL_TOKEN_USAGE: TokenUsage = {
  */
 export function App({ provider }: AppProps): React.JSX.Element {
   const { exit } = useApp();
-  const sessionRef = useRef(new ConversationSession());
 
-  const [messages, setMessages] = useState(() => sessionRef.current.getMessages());
+  const [messages, setMessages] = useState<ConversationMessage[]>([
+    { role: 'system', content: DEFAULT_SYSTEM_PROMPT },
+  ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [tokenUsage, setTokenUsage] = useState(INITIAL_TOKEN_USAGE);
@@ -56,22 +112,29 @@ export function App({ provider }: AppProps): React.JSX.Element {
         return;
       }
 
-      const session = sessionRef.current;
-      session.addUserMessage(trimmed);
-      const assistantId = session.startAssistantResponse();
-
-      setMessages(session.getMessages());
+      let currentMessages: ConversationMessage[] = [
+        ...messages,
+        { role: 'user', content: trimmed },
+      ];
+      setMessages(currentMessages);
       setInput('');
       setLoading(true);
 
+      const assistantId = currentMessages.length;
+      currentMessages = [
+        ...currentMessages,
+        { role: 'assistant', content: '', thinking: '', streaming: true },
+      ];
+      setMessages(currentMessages);
+
       try {
-        const stream = provider.stream(
-          { messages: session.getMessagesForModel() },
-        );
+        const stream = provider.stream({
+          messages: toModelMessages(currentMessages),
+        });
 
         for await (const chunk of stream) {
-          handleStreamChunk(session, assistantId, chunk);
-          setMessages(session.getMessages());
+          currentMessages = appendToAssistant(currentMessages, assistantId, chunk);
+          setMessages(currentMessages);
 
           if (chunk.type === 'usage' && chunk.usage) {
             const usage = chunk.usage;
@@ -81,39 +144,30 @@ export function App({ provider }: AppProps): React.JSX.Element {
               totalTokens: previous.totalTokens + usage.totalTokens,
             }));
           }
+
+          // 让出事件循环，确保每个 chunk 都能被渲染到终端
+          await new Promise((resolve) => setTimeout(resolve, 0));
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        session.appendToAssistant(assistantId, {
+        currentMessages = appendToAssistant(currentMessages, assistantId, {
           type: 'content',
           delta: `请求失败: ${message}`,
         });
-        setMessages(session.getMessages());
+        setMessages(currentMessages);
       } finally {
-        session.finalizeAssistant(assistantId);
-        setMessages(session.getMessages());
+        currentMessages = currentMessages.map((message, index) => {
+          if (index !== assistantId || message.role !== 'assistant') {
+            return message;
+          }
+          return { ...message, streaming: false };
+        });
+        setMessages(currentMessages);
         setLoading(false);
       }
     },
-    [provider, loading],
+    [provider, loading, messages],
   );
-
-  /**
-   * 将流块应用到会话中的助手消息
-   * @param session - 当前会话
-   * @param assistantId - 助手消息索引
-   * @param chunk - Provider 返回的流块
-   */
-  function handleStreamChunk(
-    session: ConversationSession,
-    assistantId: number,
-    chunk: ChatStreamChunk,
-  ): void {
-    if (chunk.type === 'usage') {
-      return;
-    }
-    session.appendToAssistant(assistantId, chunk);
-  }
 
   useInput((inputKey, key) => {
     if (key.ctrl && inputKey === 'c') {
@@ -138,6 +192,8 @@ export function App({ provider }: AppProps): React.JSX.Element {
     }
   });
 
+  const visibleMessages = messages.filter((message) => message.role !== 'system');
+
   return (
     <Box flexDirection="column" height="100%" padding={1}>
       <Box
@@ -160,7 +216,7 @@ export function App({ provider }: AppProps): React.JSX.Element {
         marginTop={1}
       >
         <ScrollBox stickyScroll>
-          {messages.length === 0 ? (
+          {visibleMessages.length === 0 ? (
             <Box
               padding={2}
               justifyContent="center"
@@ -172,7 +228,7 @@ export function App({ provider }: AppProps): React.JSX.Element {
             </Box>
           ) : (
             <Box flexDirection="column" padding={1}>
-              {messages.map((msg, index) => (
+              {visibleMessages.map((msg, index) => (
                 <MessageBubble key={index} msg={msg} />
               ))}
             </Box>

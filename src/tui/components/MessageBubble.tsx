@@ -9,7 +9,7 @@
  * ======================================================
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Box, Text } from '@smai-kit/smink';
 
 import type { ConversationMessage } from '../../conversation/types.js';
@@ -26,7 +26,7 @@ export interface MessageBubbleProps {
  * @param props - 组件属性
  * @returns React 元素
  */
-export function MessageBubble({ msg }: MessageBubbleProps): React.JSX.Element {
+function MessageBubbleComponent({ msg }: MessageBubbleProps): React.JSX.Element {
   const isUser = msg.role === 'user';
   const color = isUser ? theme.user : theme.assistant;
   const label = isUser ? '你' : 'AI';
@@ -57,3 +57,6 @@ export function MessageBubble({ msg }: MessageBubbleProps): React.JSX.Element {
     </Box>
   );
 }
+
+/** 单条消息气泡（记忆化，避免未变化的消息重复渲染） */
+export const MessageBubble = memo(MessageBubbleComponent);

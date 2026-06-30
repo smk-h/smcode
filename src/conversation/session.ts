@@ -21,10 +21,10 @@ export class ConversationSession {
    * @param content - 用户输入内容
    */
   public addUserMessage(content: string): void {
-    this._messages.push({
-      role: 'user',
-      content,
-    });
+    this._messages = [
+      ...this._messages,
+      { role: 'user', content },
+    ];
   }
 
   /**
@@ -32,13 +32,17 @@ export class ConversationSession {
    * @returns 助手消息在会话中的索引 ID，用于后续追加内容
    */
   public startAssistantResponse(): number {
-    this._messages.push({
-      role: 'assistant',
-      content: '',
-      thinking: '',
-      streaming: true,
-    });
-    return this._messages.length - 1;
+    const id = this._messages.length;
+    this._messages = [
+      ...this._messages,
+      {
+        role: 'assistant',
+        content: '',
+        thinking: '',
+        streaming: true,
+      },
+    ];
+    return id;
   }
 
   /**
@@ -47,16 +51,27 @@ export class ConversationSession {
    * @param chunk - Provider 返回的流块
    */
   public appendToAssistant(id: number, chunk: ChatStreamChunk): void {
-    const message = this._messages[id];
-    if (message?.role !== 'assistant') {
-      return;
-    }
+    this._messages = this._messages.map((message, index) => {
+      if (index !== id || message.role !== 'assistant') {
+        return message;
+      }
 
-    if (chunk.type === 'content' && chunk.delta) {
-      message.content += chunk.delta;
-    } else if (chunk.type === 'thinking' && chunk.delta) {
-      message.thinking = (message.thinking ?? '') + chunk.delta;
-    }
+      if (chunk.type === 'content' && chunk.delta) {
+        return {
+          ...message,
+          content: message.content + chunk.delta,
+        };
+      }
+
+      if (chunk.type === 'thinking' && chunk.delta) {
+        return {
+          ...message,
+          thinking: (message.thinking ?? '') + chunk.delta,
+        };
+      }
+
+      return message;
+    });
   }
 
   /**
@@ -64,10 +79,12 @@ export class ConversationSession {
    * @param id - 助手消息索引 ID
    */
   public finalizeAssistant(id: number): void {
-    const message = this._messages[id];
-    if (message?.role === 'assistant') {
-      message.streaming = false;
-    }
+    this._messages = this._messages.map((message, index) => {
+      if (index !== id || message.role !== 'assistant') {
+        return message;
+      }
+      return { ...message, streaming: false };
+    });
   }
 
   /**
