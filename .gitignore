@@ -6,3 +6,5 @@ dist
 .npmrc
 
 smink
+claude-code
+.env

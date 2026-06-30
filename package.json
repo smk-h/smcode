@@ -1,0 +1,34 @@
+{
+  "name": "@smai-kit/smcode",
+  "version": "0.0.0",
+  "description": "一个运行在终端的代码编写小助手。",
+  "type": "module",
+  "main": "out/index.js",
+  "bin": {
+    "smcode": "bin/smcode.js"
+  },
+  "files": [
+    "bin",
+    "out",
+    "README.md"
+  ],
+  "scripts": {
+    "clean": "rimraf out",
+    "build": "tsc -p tsconfig.json",
+    "start": "node bin/smcode.js",
+    "prepublishOnly": "npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://cnb.cool/smk.h/smcode"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^26.0.1",
+    "rimraf": "^6.1.3",
+    "typescript": "^6.0.3"
+  }
+}
