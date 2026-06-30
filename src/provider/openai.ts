@@ -11,7 +11,7 @@
 
 import OpenAI from 'openai';
 
-import type { ProviderConfig } from '../config/types.js';
+import type { ProviderItemConfig } from '../config/types.js';
 import type { ChatMessage, ChatStreamChunk, Provider } from './types.js';
 
 /** OpenAI 兼容协议 Provider */
@@ -20,12 +20,12 @@ export class OpenAIProvider implements Provider {
   public readonly protocol = 'openai';
 
   private readonly _client: OpenAI;
-  private readonly _config: ProviderConfig;
+  private readonly _config: ProviderItemConfig;
 
   /**
    * @param config - Provider 配置
    */
-  constructor(config: ProviderConfig) {
+  constructor(config: ProviderItemConfig) {
     this._config = config;
     this._client = new OpenAI({
       baseURL: config.baseUrl,

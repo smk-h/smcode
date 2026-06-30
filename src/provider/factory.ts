@@ -9,7 +9,7 @@
  * ======================================================
  */
 
-import type { ProviderConfig } from '../config/types.js';
+import type { ProviderItemConfig } from '../config/types.js';
 
 import { OpenAIProvider } from './openai.js';
 import type { Provider } from './types.js';
@@ -20,7 +20,7 @@ import type { Provider } from './types.js';
  * @returns Provider 实例
  * @throws {Error} 当 protocol 不受支持时抛出
  */
-export function createProvider(config: ProviderConfig): Provider {
+export function createProvider(config: ProviderItemConfig): Provider {
   if (config.protocol === 'openai') {
     return new OpenAIProvider(config);
   }

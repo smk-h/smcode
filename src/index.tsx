@@ -12,7 +12,10 @@
 import { render } from '@smai-kit/smink';
 
 import { loadConfig } from './config/loader.js';
+import { resolveProviderSelection } from './config/resolver.js';
+import type { ProviderItemConfig } from './config/types.js';
 import { createProvider } from './provider/factory.js';
+import { ProviderSelector } from './tui/components/ProviderSelector.js';
 import { App } from './tui/app.js';
 
 /** 默认配置文件路径 */
@@ -32,7 +35,31 @@ function parseConfigPath(args: readonly string[]): string {
 }
 
 /**
- * 命令行入口：解析参数、加载配置、创建 Provider 并启动 TUI
+ * 让用户从多个 Provider 中选择一个
+ *
+ * 渲染 ProviderSelector 界面，等待用户确认或取消。
+ *
+ * @param providers - 可供选择的 Provider 列表
+ * @returns 用户选中的 Provider 配置
+ */
+async function selectProvider(
+  providers: readonly ProviderItemConfig[],
+): Promise<ProviderItemConfig> {
+  return new Promise<ProviderItemConfig>((resolve, reject) => {
+    render(
+      <ProviderSelector
+        providers={providers}
+        onSelect={(provider) => resolve(provider)}
+        onCancel={() => reject(new Error('用户取消选择'))}
+      />,
+    )
+      .then((instance) => instance.waitUntilExit())
+      .catch(reject);
+  });
+}
+
+/**
+ * 命令行入口：解析参数、加载配置、选择 Provider 并启动 TUI
  * @param args - 命令行参数数组（已剔除 node 与脚本路径）
  * @returns 进程退出码，0 表示成功
  */
@@ -43,13 +70,19 @@ export async function main(
 
   try {
     const config = loadConfig(configPath);
-    const provider = createProvider(config);
+    const selection = resolveProviderSelection(config);
+
+    const activeProvider = selection.needsSelection
+      ? await selectProvider(selection.items)
+      : selection.selected!;
+
+    const provider = createProvider(activeProvider);
     const instance = await render(<App provider={provider} />);
     await instance.waitUntilExit();
     return 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    // 配置加载或 Provider 创建失败时，以文本形式输出错误并退出
+    // 配置加载、Provider 选择或创建失败时，以文本形式输出错误并退出
     console.error(`启动失败: ${message}`);
     return 1;
   }
