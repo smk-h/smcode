@@ -92,10 +92,12 @@ export class ConversationSession {
    * @returns 聊天消息列表
    */
   public getMessagesForModel(): ChatMessage[] {
-    return this._messages.map((message) => ({
-      role: message.role,
-      content: message.content,
-    }));
+    return this._messages
+      .filter((message) => message.role !== 'assistant' || message.content.trim() !== '')
+      .map((message) => ({
+        role: message.role,
+        content: message.content,
+      }));
   }
 
   /**

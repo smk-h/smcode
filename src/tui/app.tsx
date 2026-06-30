@@ -47,6 +47,7 @@ const DEFAULT_SYSTEM_PROMPT = 'You are a helpful coding assistant.';
 function toModelMessages(messages: readonly ConversationMessage[]): ChatMessage[] {
   return messages
     .filter((message) => message.role !== 'system')
+    .filter((message) => message.role !== 'assistant' || message.content.trim() !== '')
     .map((message) => ({
       role: message.role,
       content: message.content,
