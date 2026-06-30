@@ -17,6 +17,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node bin/smcode.js",
     "prepublishOnly": "npm run build",
+    "git-sync-force": "node scripts/sync-force.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
