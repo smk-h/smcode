@@ -1,30 +1,66 @@
 # smcode 默认配置文件
 # 启动时会读取 .smcode/config.yaml，也可通过 --config 指定其他路径
+#
+# 配置说明：
+# - name:     Provider 显示名称，用于选择界面
+# - protocol: 后端协议，目前仅支持 openai（OpenAI 兼容格式）
+# - model:    模型名称，需与服务商提供的模型名完全一致
+# - base_url: API 基础地址，OpenAI 兼容接口通常以 /v1 结尾
+# - api_key:  API 认证密钥，不能为空；本地 Ollama 可填任意占位字符串
+# - thinking: 是否展示/请求思考过程，取决于模型是否支持 reasoning_content
 
 # 多 Provider 配置示例
 providers:
+  # 1. DeepSeek 官方 API
+  # 官网：https://platform.deepseek.com
   - name: deepseek
     protocol: openai
-    base_url: https://api.deepseek.com
+    base_url: https://api.deepseek.com/v1
     api_key: sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    model: deepseek-v4-flash
-    thinking: true
+    model: deepseek-chat
+    thinking: false
 
-  - name: ollama
+  # 2. Moonshot / Kimi 官方 API
+  # 官网：https://platform.moonshot.cn
+  - name: moonshot
     protocol: openai
-    base_url: https://ollama.com/v1
-    api_key: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    model: minimax-m3:cloud
-    thinking: true
+    base_url: https://api.moonshot.cn/v1
+    api_key: sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    model: moonshot-v1-8k
+    thinking: false
 
+  # 3. OpenCode（Moonshot AI 兼容通道）
+  # 适用于 opencode.ai 提供的 OpenAI 兼容端点
   - name: opencode
     protocol: openai
     base_url: https://opencode.ai/zen/go/v1
     api_key: sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     model: kimi-k2.7-code
     thinking: true
+
+  # 4. Ollama 本地部署
+  # 需先在本地运行 ollama serve，默认端口 11434
+  # api_key 可填任意非空字符串，Ollama 本地默认不校验
+  - name: ollama-local
+    protocol: openai
+    base_url: http://localhost:11434/v1
+    api_key: ollama
+    model: llama3.2
+    thinking: false
+
+  # 5. Ollama Cloud 直接 API
+  # 需先在 https://ollama.com/settings/api-keys 创建 API key
+  # 官方文档：https://docs.ollama.com/cloud
+  - name: ollama-cloud
+    protocol: openai
+    base_url: https://ollama.com/v1
+    api_key: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    model: gpt-oss:120b
+    thinking: false
+
 # 第 1 章遗留的单 Provider 格式（仍兼容）：
 # protocol: openai
-# model: deepseek-v4-flash
-# base_url: https://api.deepseek.com
+# model: deepseek-chat
+# base_url: https://api.deepseek.com/v1
 # api_key: sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# thinking: false
