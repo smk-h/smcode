@@ -56,9 +56,18 @@ export class OpenAIProvider implements Provider {
     );
 
     for await (const chunk of stream) {
-      const delta = chunk.choices[0]?.delta;
-      const reasoningContent = (delta as { reasoning_content?: string } | undefined)
-        ?.reasoning_content;
+      // 思考字段在不同 OpenAI 兼容后端中命名不同：
+      // - DeepSeek / OpenAI 官方：reasoning_content
+      // - Ollama（含云端 OpenAI 兼容端点）：reasoning
+      const delta = chunk.choices[0]?.delta as
+        | {
+            content?: string;
+            reasoning_content?: string;
+            reasoning?: string;
+          }
+        | undefined;
+
+      const reasoningContent = delta?.reasoning_content ?? delta?.reasoning;
 
       if (reasoningContent) {
         yield {
