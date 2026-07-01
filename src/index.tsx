@@ -21,6 +21,9 @@ import { App } from './tui/app.js';
 /** 默认配置文件路径 */
 const DEFAULT_CONFIG_PATH = '.smcode/config.yaml';
 
+/** 应用版本号（来自 package.json，构建时由打包注入；运行时回退读取文件） */
+const APP_VERSION = '0.0.0';
+
 /**
  * 解析命令行参数，提取配置文件路径
  * @param args - 命令行参数数组（已剔除 node 与脚本路径）
@@ -77,7 +80,14 @@ export async function main(
       : selection.selected!;
 
     const provider = createProvider(activeProvider);
-    const instance = await render(<App provider={provider} />);
+    const instance = await render(
+      <App
+        provider={provider}
+        modelName={activeProvider.model}
+        providerName={activeProvider.name}
+        version={APP_VERSION}
+      />,
+    );
     await instance.waitUntilExit();
     return 0;
   } catch (error) {
